@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd">
+	<flow name="mybatchFlow" doc:id="818049e4-5100-4bab-bab6-f194bb4e8fe1" >
+		<file:listener doc:name="On New or Updated File" doc:id="a591f4d3-cf26-4f2f-8ea2-15fa5c870cfa" directory="C:\Users\AnshI\Documents\mine" outputMimeType="application/csv">
+			<scheduling-strategy >
+				<fixed-frequency frequency="1" timeUnit="MINUTES"/>
+			</scheduling-strategy>
+		</file:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="32219300-fa50-4756-b35a-ed43fa4f441c" message="#[payload]"/>
+		<ee:transform doc:name="Transform Message" doc:id="92347ee4-b3e6-42d3-888d-78d41e99fd9b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<batch:job jobName="mybatchBatch_Job" doc:id="6616cbf3-530c-405a-9f89-38106af6420a" >
+			<batch:process-records >
+				<batch:step name="Batch_Step1" doc:id="4842fd8f-bc93-4f93-8a64-e56913f14ecc" acceptExpression="#[(payload.ID mod 2) == 0 ]" acceptPolicy="ALL">
+					<logger level="INFO" doc:name="Logger" doc:id="9bf67e1f-1f0f-4449-8875-08b440783d94" message="All records#[payload]"/>
+				</batch:step>
+				<batch:step name="Batch_Step" doc:id="82b22111-3c8a-4e08-bb25-73c7e8e9f1a6" acceptExpression="#[(payload.ID mod 2)==1]" acceptPolicy="ALL">
+					<logger level="INFO" doc:name="Logger" doc:id="3d928d9c-c7b8-4de0-9e84-439064e8c769" message="#[payload]"/>
+				</batch:step>
+				<batch:step name="Batch_Step3" doc:id="c0067149-3d12-472c-91ad-ce18dd30ba6e" >
+					<choice doc:name="Choice" doc:id="3f3427ec-137a-4d0d-8bc0-f20a88df3458" >
+						<when expression="#[(payload.ID) &gt;=5]">
+							<logger level="INFO" doc:name="Logger" doc:id="96c41f36-73cf-456a-b5a6-cb1fec6b3826" />
+							<raise-error doc:name="Raise error" doc:id="5227e5bc-a9fe-413b-ae38-2b6bdbbb9d3c" type="ACT:FAILED"/>
+							<ee:transform doc:name="Transform Message" doc:id="56936100-2432-4035-a886-51581f1a5942">
+								<ee:message>
+									<ee:set-payload><![CDATA[%dw 2.0
+output application/csv
+---
+{
+	ID: payload.ID
+}]]></ee:set-payload>
+								</ee:message>
+							</ee:transform>
+							<file:write doc:name="Write" doc:id="ca7ecc0b-59af-4618-8f9d-86c11bbb1bb4" path="C:\Users\AnshI\Desktop\abcd\writer.csv"/>
+						</when>
+					</choice>
+				</batch:step>
+				<batch:step name="Batch_Step2" doc:id="72dc9a34-9330-4c09-a413-3617cf58018c" />
+			</batch:process-records>
+		</batch:job>
+	</flow>
+</mule>
